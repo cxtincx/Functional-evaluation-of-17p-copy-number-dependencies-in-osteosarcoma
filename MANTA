@@ -1,0 +1,16 @@
+#!/bin/bash
+#SBATCH --job-name=NRHOS1_MANTA
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=20G
+
+ 
+mkdir -p /.../Catinca/NRH-OS1/WGS/Output/Manta
+ 
+configManta.py --bam /.../Catinca/NRH-OS1/WGS/Output/Base_Recalibrated/Duplicates_removed/NRHOS1_FASTP_Duplicates_removed.bam --referenceFasta /.../Catinca/Bioinformatics_resources/Resources/Homo_sapiens_assembly38.fasta --runDir /.../Catinca/NRH-OS1/WGS/Output/Manta
+#!/bin/bash
+#SBATCH --job-name=NRHOS1_MANTA
+#SBATCH --cpus-per-task=6
+#SBATCH --mem=50G
+#SBATCH -p long
+ 
+/.../Catinca/NRH-OS1/WGS/Output/Manta/runWorkflow.py -m local -j 8
