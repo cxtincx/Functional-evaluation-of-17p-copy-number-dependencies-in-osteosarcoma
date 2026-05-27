@@ -1,0 +1,42 @@
+#!/bin/bash
+#SBATCH --job-name=SNVcalling
+#SBATCH --mem=120G
+#SBATCH --cpus-per-task=16
+#SBATCH -p long
+mkdir -p /.../Catinca/NRH-OS1/WGS/Output/SNV_calling
+module load GATK/4.5.0.0-GCCcore-12.3.0-Java-17
+gatk Mutect2 \
+  -R /.../Catinca/Bioinformatics_resources/Resources/Homo_sapiens_assembly38.fasta \
+  -I /.../Catinca/NRH-OS1/WGS/Output/Base_Recalibrated/Duplicates_removed/NRHOS1_FASTP_Duplicates_removed.bam \
+  -tumor NRHOS1 \
+  --germline-resource /.../Catinca/Bioinformatics_resources/Resources/somatic-hg38_af-only-gnomad.hg38.vcf.gz \
+  --panel-of-normals /.../Catinca/Bioinformatics_resources/Resources/1000g_pon.hg38.vcf.gz \
+  -O /.../Catinca/NRH-OS1/WGS/Output/SNV_calling/NRHOS1_SNV_unfiltered.vcf.gz
+
+
+#!/bin/bash
+#SBATCH --job-name=FuncutatorNRHOS1
+#SBATCH --mem=120G
+#SBATCH --cpus-per-task=16
+#SBATCH -p long
+mkdir -p /.../Catinca/NRH-OS1/WGS/Output/FUNCUTATOR/Filtered
+module load GATK/4.5.0.0-GCCcore-12.3.0-Java-17
+ 
+gatk Funcotator \
+    -R /.../Catinca/Bioinformatics_resources/Resources/Homo_sapiens_assembly38.fasta \
+    -V /.../Catinca/NRH-OS1/WGS/Output/SNV_calling/Filter/NRHOS1_SNV_filtered.vcf.gz \
+    -O /.../Catinca/NRH-OS1/WGS/Output/FUNCUTATOR/Filtered/NRHOS1_annotated_FASTP_duplicates_removed_filter.maf \
+    --output-file-format MAF \
+    --data-sources-path /.../Stuart/AllSamples/Resources/FuncotatorData/funcotator_dataSources.v1.7.20200521s \
+    --ref-version hg38
+#!/bin/bash
+#SBATCH --job-name=SNVcalling
+#SBATCH --mem=120G
+#SBATCH --cpus-per-task=16
+#SBATCH -p long
+module load GATK/4.5.0.0-GCCcore-12.3.0-Java-17
+mkdir -p /.../Catinca/NRH-OS1/WGS/Output/SNV_calling/Filter
+gatk FilterMutectCalls \
+  -R /.../Catinca/Bioinformatics_resources/Resources/Homo_sapiens_assembly38.fasta \
+  -V /.../Catinca/NRH-OS1/WGS/Output/SNV_calling/NRHOS1_SNV_unfiltered.vcf.gz \
+  -O /.../Catinca/NRH-OS1/WGS/Output/SNV_calling/Filter/NRHOS1_SNV_filtered.vcf.gz
