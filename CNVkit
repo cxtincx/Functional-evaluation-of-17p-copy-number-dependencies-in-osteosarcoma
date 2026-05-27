@@ -1,0 +1,11 @@
+#!/bin/bash
+#SBATCH --job-name=CNVkit
+#SBATCH --mem=50G
+#SBATCH --cpus-per-task=6
+#SBATCH -p long
+
+mkdir -p /...//Catinca/NRH-OS1/WGS/Output/CNV_calling/Duplicates_removed/Ploidy_adjusted
+cnvkit.py call /...//Catinca/NRH-OS1/WGS/Output/CNV_calling/Duplicates_removed/NRHOS1_FASTP_Duplicates_removed.cns \
+--ploidy 4 \
+--center median \
+-o /...//Catinca/NRH-OS1/WGS/Output/CNV_calling/Duplicates_removed/Ploidy_adjusted/NRHOS1_FASTP_Duplicates_removed_ploidy.cns
