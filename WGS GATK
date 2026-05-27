@@ -1,0 +1,149 @@
+#!/bin/bash
+#SBATCH --job-name=FASTQC
+#SBATCH --mem=10G
+module load FastQC
+
+mkdir -p /.../Catinca/NRH-OS1/WGS/Output/TEMPORARYDIR
+mkdir -p /.../Catinca/NRH-OS1/WGS/Output/FASTQC_before_rem_2
+fastqc -d /.../Catinca/NRH-OS1/WGS/Output/TEMPORARYDIR -o /.../Catinca/NRH-OS1/WGS/Output/FASTQC_before_rem_2 /.../Catinca/NRH-OS1/WGS/FASTQ_raw_files/NRHOS1_R1_001.fastq.gz /.../Catinca/NRH-OS1/WGS/FASTQ_raw_files/NRHOS1_R2_001.fastq.gz
+
+#!/bin/bash
+#SBATCH --job-name=Cutadapt
+#SBATCH --mem=10G
+
+module load cutadapt
+
+mkdir -p /.../Catinca/NRH-OS1/WGS/Output/Cutadapt_files_3
+
+cutadapt -a AGATCGGAAGAGCACACGTCTGAACTCCAGTCA -A AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT -o /.../Catinca/NRH-OS1/WGS/Output/Cutadapt_files_3/cutadapt_NRHOS1_R1_001.fastq -p /.../Catinca/NRH-OS1/WGS/Output/Cutadapt_files_3/cutadapt_NRHOS1_R2_001.fastq /.../Catinca/NRH-OS1/WGS/FASTQ_raw_files/NRHOS1_R1_001.fastq.gz /.../Catinca/NRH-OS1/WGS/FASTQ_raw_files/NRHOS1_R2_001.fastq.gz
+#!/bin/bash
+#SBATCH --job-name=FASTQC_after
+#SBATCH --mem=10G
+
+module load FastQC
+
+mkdir -p /.../Catinca/NRH-OS1/WGS/Output/TEMPORARYDIR
+
+mkdir -p /.../Catinca/NRH-OS1/WGS/Output/FASTQC_after_rem_4
+
+fastqc -d /.../Catinca/NRH-OS1/WGS/Output/TEMPORARYDIR -o /.../Catinca/NRH-OS1/WGS/Output/FASTQC_after_rem_4 /../Catinca/NRH-OS1/WGS/Output/Cutadapt_files_3/cutadapt_NRHOS1_R1_001.fastq /.../Catinca/NRH-OS1/WGS/Output/Cutadapt_files_3/cutadapt_NRHOS1_R2_001.fastq
+#!/bin/bash
+#SBATCH --job-name=BowtieAlignCA
+#SBATCH -p long
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=120G
+
+mkdir -p /.../Catinca/NRH-OS1/WGS/Output/Bowtie_6/CUTADAPT_basic
+
+module load Bowtie2
+
+bowtie2 --no-unal \
+  -p ${SLURM_CPUS_PER_TASK} \
+  -x index_name \
+  -1 /.../Catinca/NRH-OS1/WGS/Output/Cutadapt_files_3/cutadapt_NRHOS1_R1_001.fastq \
+  -2 /.../Catinca/NRH-OS1/WGS/Output/Cutadapt_files_3/cutadapt_NRHOS1_R2_001.fastq \
+  -S /.../Catinca/NRH-OS1/WGS/Output/Bowtie_6/CUTADAPT_basic/NRHOS1.sam
+#!/bin/bash
+#SBATCH --job-name=Analysis
+#SBATCH --mem=120G
+
+module load GATK/4.5.0.0-GCCcore-12.3.0-Java-17
+mkdir -p /.../Catinca/NRH-OS1/WGS/Output/Mark_dups
+gatk --java-options "-Djava.io.tmpdir=/.../Catinca/NRH-OS1/WGS/Output/TEMPORARYDIR" MarkDuplicates -I /...Catinca/NRH-OS1/WGS/Output/BAM_sort/NRHOS1_sorted.bam -O /...Catinca/NRH-OS1/WGS/Output/Mark_dups/NRHOS1_marked_dups.bam -M NRHOS1_marked_dups.txt
+
+#!/bin/bash
+#SBATCH --job-name=RD_LMS
+#SBATCH --mem=50G
+
+module load SAMtools/1.18-GCC-12.3.0
+mkdir -p /...Catinca/NRH-OS1/WGS/Output/Remove_dups
+samtools view -h -F 1024 -b /.../Catinca/NRH-OS1/WGS/Output/Mark_dups/NRHOS1_marked_dups.bam  > /.../Catinca/NRH-OS1/WGS/Output/Remove_dups/NRHOS1_remove_dups.bam
+
+#!/bin/bash
+#SBATCH --job-name=RG
+#SBATCH --mem=50G
+
+# Load Java and Picard modules
+module load Java/17.0.6 
+module load picard/3.0.0-Java-17
+
+INPUT_DIR="/.../Catinca/NRH-OS1/WGS/Output/Remove_dups/NRHOS1_remove_dups.bam"
+OUTPUT_DIR="/.../Catinca/NRH-OS1/WGS/Output/ReadGroups/Duplicates_removed"
+LOG_DIR="/.../Catinca/NRH-OS1/WGS/Output/ReadGroups/Duplicates_removed/picard/FASTP"
+SAMPLE="NRHOS1"
+
+# Create directory if it doesn't exist
+mkdir -p "${OUTPUT_DIR}"
+mkdir -p "${LOG_DIR}"
+
+# Run Picard command
+java -jar $EBROOTPICARD/picard.jar AddOrReplaceReadGroups \
+    I="${INPUT_DIR}" \
+    O="${OUTPUT_DIR}/NRHOS1_FASTP_Duplicates_removed.bam" \
+    RGID="${SAMPLE}" \
+    RGLB="lib1" \
+    RGPL="illumina" \
+    RGPU="${SAMPLE}" \
+    RGSM="${SAMPLE}" \
+    &> "${LOG_DIR}/${SAMPLE}_addreplace_rg.log"
+#!/bin/bash
+#SBATCH --job-name=RG
+#SBATCH --mem=50G
+
+# Load Java and Picard modules
+module load Java/17.0.6 
+module load picard/3.0.0-Java-17
+
+INPUT_DIR="/.../Catinca/NRH-OS1/WGS/Output/BAM_sort/NRHOS1_sorted.bam"
+OUTPUT_DIR="/.../Catinca/NRH-OS1/WGS/Output/ReadGroups/Duplicates_not_removed"
+LOG_DIR="/.../Catinca/NRH-OS1/WGS/Output/ReadGroups/Duplicates_not_removed/picard/FASTP"
+SAMPLE="NRHOS1"
+
+# Create directory if it doesn't exist
+mkdir -p "${OUTPUT_DIR}"
+mkdir -p "${LOG_DIR}"
+
+# Run Picard command
+java -jar $EBROOTPICARD/picard.jar AddOrReplaceReadGroups \
+    I="${INPUT_DIR}" \
+    O="${OUTPUT_DIR}/NRHOS1_FASTP_Duplicates_not_removed.bam" \
+    RGID="${SAMPLE}" \
+    RGLB="lib1" \
+    RGPL="illumina" \
+    RGPU="${SAMPLE}" \
+    RGSM="${SAMPLE}" \
+    &> "${LOG_DIR}/${SAMPLE}_addreplace_rg.log"
+#!/bin/bash
+#SBATCH --job-name=BSR_file
+#SBATCH --mem=100G
+#SBATCH -p long
+
+mkdir -p /.../Catinca/NRH-OS1/WGS/Output/tempdir_BQSR/dup_not_rem
+mkdir -p /.../Catinca/NRH-OS1/WGS/Output/Base_Recalibration/Duplicates_not_removed
+
+module load GATK
+
+gatk BaseRecalibrator \
+   -I  /.../Catinca/NRH-OS1/WGS/Output/ReadGroups/Duplicates_not_removed/NRHOS1_FASTP_Duplicates_not_removed.bam\
+   -R /.../Catinca/Bioinformatics_resources/Resources/Homo_sapiens_assembly38.fasta \
+   --known-sites /.../Catinca/Bioinformatics_resources/Resources/Homo_sapiens_assembly38.dbsnp138.vcf \
+   --known-sites /.../Catinca/Bioinformatics_resources/Resources/Homo_sapiens_assembly38.known_indels.vcf.gz \
+   --known-sites /.../Catinca/Bioinformatics_resources/Resources/1000G_omni2.5.hg38.vcf.gz \
+   --known-sites /.../Catinca/Bioinformatics_resources/Resources/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz \
+   -O /.../Catinca/NRH-OS1/WGS/Output/Base_Recalibration/Duplicates_not_removed/NRHOS1_FASTP_Duplicates_not_Removed.table \
+   --tmp-dir /.../Catinca/NRH-OS1/WGS/Output/tempdir_BQSR/dup_not_rem
+#!/bin/bash
+#SBATCH --job-name=appBQRS
+#SBATCH -p long
+#SBATCH --mem=60G
+#SBATCH --cpus-per-task=4
+
+mkdir -p /.../Catinca/NRH-OS1/WGS/Output/Base_Recalibrated/Duplicates_not_removed
+
+module load GATK
+
+gatk ApplyBQSR \
+-R /.../Catinca/Bioinformatics_resources/Resources/Homo_sapiens_assembly38.fasta \
+-I /.../Catinca/NRH-OS1/WGS/Output/ReadGroups/Duplicates_not_removed/NRHOS1_FASTP_Duplicates_not_removed.bam \
+--bqsr-recal-file /.../Catinca/NRH-OS1/WGS/Output/Base_Recalibration/Duplicates_not_removed/NRHOS1_FASTP_Duplicates_not_Removed.table \
+--output /.../Catinca/NRH-OS1/WGS/Output/Base_Recalibrated/Duplicates_not_removed/NRHOS1_FASTP_Duplicates_not_removed.bam 
