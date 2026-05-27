@@ -1,3 +1,5 @@
+
+
 #!/bin/bash
 #SBATCH --job-name=CNVkit
 #SBATCH --mem=50G
@@ -9,3 +11,25 @@ cnvkit.py call /...//Catinca/NRH-OS1/WGS/Output/CNV_calling/Duplicates_removed/N
 --ploidy 4 \
 --center median \
 -o /...//Catinca/NRH-OS1/WGS/Output/CNV_calling/Duplicates_removed/Ploidy_adjusted/NRHOS1_FASTP_Duplicates_removed_ploidy.cns
+
+
+#!/bin/bash
+#SBATCH --job-name=seg
+#SBATCH --mem=50G
+#SBATCH --cpus-per-task=5
+#SBATCH -p long
+ 
+mkdir -p /.../Catinca/NRH-OS1/WGS/Output/Seg/ploidy
+ 
+cnvkit.py export seg /.../Catinca/NRH-OS1/WGS/Output/CNV_calling/Duplicates_removed/Ploidy_adjusted/NRHOS1_FASTP_Duplicates_removed_ploidy.cns -o /.../Catinca/NRH-OS1/WGS/Output/Seg/ploidy/NRHOS1_FASTP_Duplicates_removed_ploidy.seg 
+
+#!/bin/bash
+#SBATCH --job-name=seg
+#SBATCH --mem=50G
+#SBATCH --cpus-per-task=5
+#SBATCH -p long
+awk 'BEGIN{OFS="\t"} NR==1{$1="Sample"; $2="Chromosome"; $3="Start"; $4="End"; $5="Num_Probes"; $6="Log2Ratio"} 
+NR>1{$1="NRHOS1"} 
+{print}' \
+/.../Catinca/NRH-OS1/WGS/Output/Seg/NRHOS1_FASTP_Duplicates_removed.seg \
+> /.../Catinca/NRH-OS1/WGS/Output/Seg/NRHOS1_fixed.seg
